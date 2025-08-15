@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DDS • Dashboard</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script defer src="config.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Drone Dispatch System — Dashboard</h1>
+      <div class="row">
+        <button onclick="location.href='create.html'">Create Delivery</button>
+      </div>
+
+      <h2>Active Deliveries</h2>
+      <ul id="list" class="list"></ul>
+      <p class="small">Tip: Click Track to open live canvas simulation.</p>
+    </div>
+  </div>
+
+  <script>
+    async function load() {
+      const res = await fetch(window.BACKEND_URL + "/deliveries");
+      const data = await res.json();
+      const ul = document.getElementById("list");
+      ul.innerHTML = "";
+      data.forEach(d => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <div>
+            <strong>#${d.id}</strong> • ${d.payload}
+            &nbsp;<span class="badge">${d.priority}</span>
+            <div class="small">Dropoff: [${d.dropoff[0].toFixed(1)}, ${d.dropoff[1].toFixed(1)}] • ETA: ${d.eta_minutes} min</div>
+          </div>
+          <div>
+            <a class="btn" href="track.html?id=${d.id}">Track</a>
+          </div>`;
+        ul.appendChild(li);
+      });
+    }
+    load();
+  </script>
+</body>
+</html>

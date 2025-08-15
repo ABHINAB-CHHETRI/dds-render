@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DDS • Create Delivery</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script defer src="config.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Create Delivery</h1>
+      <div class="row">
+        <div style="flex:1;min-width:260px;">
+          <label>Payload Type</label>
+          <select id="payload">
+            <option>Blood</option>
+            <option>Vaccine</option>
+            <option>First Aid</option>
+            <option>Insulin</option>
+            <option>Defibrillator</option>
+          </select>
+
+          <label>Priority</label>
+          <select id="priority">
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+          <p class="small">Start is fixed at [10,10]. Click on the canvas to set Drop‑off (0..100 units).</p>
+          <button id="submit">Create</button>
+          <span id="msg" class="small"></span>
+        </div>
+
+        <div style="flex:1.6;min-width:320px;">
+          <div class="canvas-wrap">
+            <canvas id="pick" width="500" height="500"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("pick");
+    const ctx = canvas.getContext("2d");
+    let drop = null;
+
+    function drawPicker() {
+      ctx.clearRect(0,0,500,500);
+      ctx.strokeStyle = "#23344a";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, 450); ctx.lineTo(500, 450);
+      ctx.moveTo(50, 0); ctx.lineTo(50, 500);
+      ctx.stroke();
+
+      drawDot(mapX(10), mapY(10), 6, "#6ea8fe");
+      if (drop) drawDot(mapX(drop[0]), mapY(drop[1]), 6, "#7bf7c7");
+    }
+
+    function mapX(x){ return Math.round(x * 5); }
+    function mapY(y){ return Math.round(500 - y * 5); }
+
+    function drawDot(x,y,r,fill){
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle = fill; ctx.fill();
+    }
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const gx = +(cx / 5).toFixed(2);
+      const gy = +((500 - cy) / 5).toFixed(2);
+      drop = [gx, gy];
+      drawPicker();
+    });
+
+    drawPicker();
+
+    document.getElementById("submit").addEventListener("click", async () => {
+      if (!drop) {
+        document.getElementById("msg").textContent = "Click on the canvas to set a drop‑off.";
+        return;
+      }
+      const payload = document.getElementById("payload").value;
+      const priority = document.getElementById("priority").value;
+      const res = await fetch(window.BACKEND_URL + "/create_delivery", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ payload, priority, dropoff: drop })
+      });
+      if (res.ok) {
+        location.href = "index.html";
+      } else {
+        document.getElementById("msg").textContent = "Error creating delivery.";
+      }
+    });
+  </script>
+</body>
+</html>

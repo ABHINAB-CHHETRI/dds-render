@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DDS • Live Tracking</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script defer src="config.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Live Tracking</h1>
+      <div class="row">
+        <div style="flex:1;min-width:260px;">
+          <div id="meta" class="small">Loading…</div>
+          <h2>ETA</h2>
+          <div id="eta" class="badge">-- min</div>
+        </div>
+        <div style="flex:1.6;min-width:320px;">
+          <div class="canvas-wrap">
+            <canvas id="sim" width="500" height="500"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const id = params.get("id");
+    const canvas = document.getElementById("sim");
+    const ctx = canvas.getContext("2d");
+
+    function mapX(x){ return Math.round(x * 5); }
+    function mapY(y){ return Math.round(500 - y * 5); }
+    function drawDot(x,y,r,fill){
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle = fill; ctx.fill();
+    }
+
+    async function run() {
+      const res = await fetch(window.BACKEND_URL + "/deliveries/" + id);
+      const d = await res.json();
+      document.getElementById("meta").textContent =
+        `#${d.id} • ${d.payload} • Priority ${d.priority} • Dropoff [${d.dropoff[0]}, ${d.dropoff[1]}]`;
+
+      const route = d.route;
+      let i = 0;
+      const total = route.length;
+      const tickMs = 400;
+
+      const tick = () => {
+        if (i >= total) return;
+        ctx.clearRect(0,0,500,500);
+
+        ctx.strokeStyle = "#244a6e";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(mapX(route[0].x), mapY(route[0].y));
+        for (let k=1;k<=i;k++) {
+          ctx.lineTo(mapX(route[k].x), mapY(route[k].y));
+        }
+        ctx.stroke();
+
+        drawDot(mapX(route[0].x), mapY(route[0].y), 5, "#6ea8fe");
+        drawDot(mapX(route[total-1].x), mapY(route[total-1].y), 5, "#7bf7c7");
+        drawDot(mapX(route[i].x), mapY(route[i].y), 6, "#ffd166");
+
+        const remaining = Math.max(0, total - i - 1);
+        document.getElementById("eta").textContent = Math.max(1, Math.ceil(remaining/2)) + " min";
+
+        i++;
+        if (i < total) setTimeout(tick, tickMs);
+      };
+      tick();
+    }
+    run();
+  </script>
+</body>
+</html>
